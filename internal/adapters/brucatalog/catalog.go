@@ -1,0 +1,182 @@
+package brucatalog
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/sanmoo/bruwrapper/internal/core"
+	"gopkg.in/yaml.v3"
+)
+
+type catalog struct {
+	paths []string
+}
+
+type brunoJSON struct {
+	Version string `json:"version"`
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+}
+
+type openCollectionYML struct {
+	Version string `yaml:"version"`
+	Name    string `yaml:"name"`
+	Type    string `yaml:"type"`
+}
+
+func NewCatalog(paths []string) core.Catalog {
+	return &catalog{paths: paths}
+}
+
+func (c *catalog) FindCollections() ([]core.Collection, error) {
+	var collections []core.Collection
+	for _, p := range c.paths {
+		expanded, err := expandPath(p)
+		if err != nil {
+			continue
+		}
+		name, format, err := detectCollection(expanded)
+		if err != nil {
+			continue
+		}
+		absPath, _ := filepath.Abs(expanded)
+		collections = append(collections, core.Collection{
+			Name: name,
+			Path: absPath,
+		})
+		_ = format
+	}
+	return collections, nil
+}
+
+func (c *catalog) FindRequests(collectionName string) ([]core.Request, error) {
+	colPath, err := c.findCollectionPath(collectionName)
+	if err != nil {
+		return nil, err
+	}
+
+	_, format, err := detectCollection(colPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var requests []core.Request
+	ext := ".bru"
+	if format == core.FormatYML {
+		ext = ".yml"
+	}
+
+	err = filepath.WalkDir(colPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(d.Name(), ext) {
+			return nil
+		}
+		if format == core.FormatBru && d.Name() == "bruno.json" {
+			return nil
+		}
+		if format == core.FormatYML && d.Name() == "opencollection.yml" {
+			return nil
+		}
+
+		var req core.Request
+		if format == core.FormatBru {
+			req, err = ParseBruFile(path)
+			if err != nil {
+				return nil
+			}
+		} else {
+			req, err = ParseYMLFile(path)
+			if err != nil {
+				return nil
+			}
+		}
+		req.Collection = collectionName
+		requests = append(requests, req)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return requests, nil
+}
+
+func (c *catalog) ResolveRequest(collectionName, requestName string) (core.Request, error) {
+	reqs, err := c.FindRequests(collectionName)
+	if err != nil {
+		return core.Request{}, err
+	}
+	for _, r := range reqs {
+		if r.Name == requestName {
+			return r, nil
+		}
+	}
+	return core.Request{}, fmt.Errorf("request %q not found in collection %q", requestName, collectionName)
+}
+
+func detectCollection(dirPath string) (string, core.CollectionFormat, error) {
+	brunoPath := filepath.Join(dirPath, "bruno.json")
+	if info, err := os.Stat(brunoPath); err == nil && !info.IsDir() {
+		data, err := os.ReadFile(brunoPath)
+		if err != nil {
+			return "", "", err
+		}
+		var bj brunoJSON
+		if err := json.Unmarshal(data, &bj); err != nil {
+			return "", "", err
+		}
+		return bj.Name, core.FormatBru, nil
+	}
+
+	ymlPath := filepath.Join(dirPath, "opencollection.yml")
+	if info, err := os.Stat(ymlPath); err == nil && !info.IsDir() {
+		data, err := os.ReadFile(ymlPath)
+		if err != nil {
+			return "", "", err
+		}
+		var oc openCollectionYML
+		if err := yaml.Unmarshal(data, &oc); err != nil {
+			return "", "", err
+		}
+		return oc.Name, core.FormatYML, nil
+	}
+
+	return "", "", fmt.Errorf("no bruno.json or opencollection.yml found in %q", dirPath)
+}
+
+func expandPath(path string) (string, error) {
+	if strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(home, path[2:]), nil
+	}
+	return path, nil
+}
+
+func (c *catalog) findCollectionPath(collectionName string) (string, error) {
+	for _, p := range c.paths {
+		expanded, err := expandPath(p)
+		if err != nil {
+			continue
+		}
+		name, _, err := detectCollection(expanded)
+		if err != nil {
+			continue
+		}
+		if name == collectionName {
+			absPath, _ := filepath.Abs(expanded)
+			return absPath, nil
+		}
+	}
+	return "", fmt.Errorf("collection %q not found", collectionName)
+}
