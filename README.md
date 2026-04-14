@@ -2,8 +2,6 @@
 
 A CLI wrapper for [Bruno](https://www.usebruno.com/) that enables ad-hoc API consumption with better UX.
 
-![Interactive mode demo](docs/demo.gif)
-
 ## Why bruwrapper?
 
 The Bruno CLI (`bru`) is great for contract testing, but painful for ad-hoc API consumption:
@@ -166,8 +164,6 @@ Run without `-c` and/or `-r` to open the fuzzy finder:
 ```bash
 bruwrapper run
 ```
-
-![Interactive mode demo](docs/demo.gif)
 
 ## Configuration
 
