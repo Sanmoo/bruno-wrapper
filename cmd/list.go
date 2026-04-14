@@ -12,7 +12,7 @@ var listCmd = &cobra.Command{
 	Short: "List collections or requests",
 	Long:  "List available collections, or list requests in a specific collection.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, catalog, _, presenter, _, err := wireUp()
+		catalog, presenter, err := wireCatalogAndPresenter()
 		if err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/sanmoo/bruwrapper/internal/adapters/brucatalog"
 	"github.com/sanmoo/bruwrapper/internal/adapters/brurunner"
@@ -11,23 +12,40 @@ import (
 	"github.com/sanmoo/bruwrapper/internal/core"
 )
 
-func wireUp() (core.Config, core.Catalog, core.Runner, core.Presenter, core.Selector, error) {
-	cfgLoader := yamlconfig.New(yamlconfig.DefaultConfigPath())
+func resolveConfigPath() string {
+	path := cfgPath
+	if path == "" {
+		path = os.Getenv("BRUWRAPPER_CONFIG")
+	}
+	if path == "" {
+		path = yamlconfig.DefaultConfigPath()
+	}
+	return path
+}
+
+func wireCatalogAndPresenter() (core.Catalog, core.Presenter, error) {
+	cfgLoader := yamlconfig.New(resolveConfigPath())
 	cfg, err := cfgLoader.Load()
 	if err != nil {
-		return core.Config{}, nil, nil, nil, nil, fmt.Errorf("loading config: %w\n\nCreate ~/.bruwrapper.yaml with your collection paths", err)
+		return nil, nil, fmt.Errorf("loading config: %w\n\nCreate ~/.bruwrapper.yaml with your collection paths", err)
 	}
-
 	catalog := brucatalog.NewCatalog(cfg.CollectionPaths)
+	presenter := terminal.NewPresenter(terminal.NewStdoutWriter())
+	return catalog, presenter, nil
+}
+
+func wireUp() (core.Catalog, core.Runner, core.Presenter, core.Selector, error) {
+	catalog, presenter, err := wireCatalogAndPresenter()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 
 	bruPath, err := brurunner.FindBru()
 	if err != nil {
-		return core.Config{}, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	runner := brurunner.NewRunner(bruPath)
-
-	presenter := terminal.NewPresenter(terminal.NewStdoutWriter())
 	selector := interactive.NewSelector()
 
-	return cfg, catalog, runner, presenter, selector, nil
+	return catalog, runner, presenter, selector, nil
 }

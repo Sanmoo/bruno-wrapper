@@ -15,7 +15,7 @@ var showCmd = &cobra.Command{
 	Short: "Show request details before executing",
 	Long:  "Show the method, URL, headers, and body of a request without executing it.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, catalog, _, presenter, _, err := wireUp()
+		catalog, presenter, err := wireCatalogAndPresenter()
 		if err != nil {
 			return err
 		}

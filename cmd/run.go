@@ -24,7 +24,7 @@ var runCmd = &cobra.Command{
 	Short: "Run a Bruno request",
 	Long:  "Run a request from a Bruno collection. Opens interactive selection if -c and -r are not provided.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, catalog, runner, presenter, selector, err := wireUp()
+		catalog, runner, presenter, selector, err := wireUp()
 		if err != nil {
 			return err
 		}
