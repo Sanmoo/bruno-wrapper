@@ -1,0 +1,23 @@
+meta {
+  name: Create User
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://api.example.com/users
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body {
+  {
+    "name": "{{userName}}"
+  }
+}
+
+vars:pre-request {
+  userName: defaultName
+}
