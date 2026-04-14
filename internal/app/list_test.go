@@ -7,13 +7,34 @@ import (
 	"github.com/sanmoo/bruwrapper/internal/core"
 )
 
+type spyPresenter struct {
+	calledShowCollections bool
+	calledShowRequests    bool
+	receivedCollections   []core.Collection
+	receivedRequests      []core.Request
+}
+
+func (s *spyPresenter) ShowResponse(core.Response, core.PresentOpts) error { return nil }
+func (s *spyPresenter) ShowRequestDetails(core.Request) error              { return nil }
+func (s *spyPresenter) ShowCollections(collections []core.Collection) error {
+	s.calledShowCollections = true
+	s.receivedCollections = collections
+	return nil
+}
+func (s *spyPresenter) ShowRequests(requests []core.Request) error {
+	s.calledShowRequests = true
+	s.receivedRequests = requests
+	return nil
+}
+func (s *spyPresenter) ShowError(string) error { return nil }
+
 func TestListCollections(t *testing.T) {
 	collections := []core.Collection{
 		{Name: "col1", Path: "/path/col1"},
 		{Name: "col2", Path: "/path/col2"},
 	}
 	catalog := &mockCatalog{collections: collections}
-	presenter := &mockPresenter{}
+	presenter := &spyPresenter{}
 	app := NewListApp(catalog, presenter)
 
 	err := app.ListCollections()
@@ -36,7 +57,7 @@ func TestListCollections(t *testing.T) {
 
 func TestListCollectionsError(t *testing.T) {
 	catalog := &mockCatalog{findErr: errors.New("catalog error")}
-	presenter := &mockPresenter{}
+	presenter := &spyPresenter{}
 	app := NewListApp(catalog, presenter)
 
 	err := app.ListCollections()
@@ -57,7 +78,7 @@ func TestListRequests(t *testing.T) {
 		{Name: "req2", Method: core.MethodPost, Collection: "col1"},
 	}
 	catalog := &mockCatalog{requests: requests}
-	presenter := &mockPresenter{}
+	presenter := &spyPresenter{}
 	app := NewListApp(catalog, presenter)
 
 	err := app.ListRequests("col1")
@@ -80,7 +101,7 @@ func TestListRequests(t *testing.T) {
 
 func TestListRequestsError(t *testing.T) {
 	catalog := &mockCatalog{findErr: errors.New("catalog error")}
-	presenter := &mockPresenter{}
+	presenter := &spyPresenter{}
 	app := NewListApp(catalog, presenter)
 
 	err := app.ListRequests("col1")
