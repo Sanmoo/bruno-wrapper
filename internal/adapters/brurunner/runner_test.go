@@ -72,6 +72,46 @@ func TestParseReportInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestParseReportArrayFormat(t *testing.T) {
+	raw := `[
+		{
+			"iterationIndex": 0,
+			"results": [
+				{
+					"test": {"filename": "health/check.bru"},
+					"request": {"method": "GET", "url": "https://api.example.com/health"},
+					"response": {"status": 200, "statusText": "OK", "headers": {}, "data": null, "responseTime": 142},
+					"error": null,
+					"status": "pass",
+					"name": "Health Check",
+					"path": "health/check"
+				}
+			],
+			"summary": {"totalRequests": 1, "passedRequests": 1}
+		}
+	]`
+
+	report, err := parseReport([]byte(raw))
+	if err != nil {
+		t.Fatalf("parseReport() error: %v", err)
+	}
+
+	if len(report.Results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(report.Results))
+	}
+
+	r := report.Results[0]
+	if r.Name != "Health Check" {
+		t.Errorf("Name = %q, want %q", r.Name, "Health Check")
+	}
+	if r.Status != "pass" {
+		t.Errorf("Status = %q, want %q", r.Status, "pass")
+	}
+	if report.Summary.TotalRequests != 1 {
+		t.Errorf("Summary.TotalRequests = %d, want 1", report.Summary.TotalRequests)
+	}
+}
+
 func TestParseResponseStatusInt(t *testing.T) {
 	resp := BruReportResponse{
 		Status: json.RawMessage(`200`),

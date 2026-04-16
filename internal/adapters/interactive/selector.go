@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/sanmoo/bruwrapper/internal/core"
 )
 
@@ -16,6 +17,15 @@ func NewSelector() core.Selector {
 
 type item struct {
 	title string
+	desc  string
+}
+
+func (i item) Title() string {
+	return i.title
+}
+
+func (i item) Description() string {
+	return i.desc
 }
 
 func (i item) FilterValue() string {
@@ -34,6 +44,9 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.list.SetSize(msg.Width, msg.Height)
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
@@ -62,17 +75,57 @@ func (m model) View() string {
 
 func newListModel(items []list.Item, title string) model {
 	delegate := list.NewDefaultDelegate()
+
+	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#A6E3A1")).
+		Bold(true)
+
+	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#A6E3A1"))
+
+	delegate.Styles.NormalTitle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#CDD6F4"))
+
+	delegate.Styles.NormalDesc = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#BAC2DE"))
+
+	delegate.Styles.DimmedTitle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#6C7086"))
+
+	delegate.Styles.DimmedDesc = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#6C7086"))
+
 	l := list.New(items, delegate, 0, 0)
 	l.Title = title
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
+
+	l.Styles.Title = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#89B4FA")).
+		Bold(true)
+
+	l.Styles.PaginationStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#CDD6F4"))
+
+	l.Styles.HelpStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#CDD6F4"))
+
+	l.Help.Styles.ShortKey = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#CDD6F4"))
+
+	l.Help.Styles.ShortDesc = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#BAC2DE"))
+
+	l.Help.Styles.ShortSeparator = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#6C7086"))
+
 	return model{list: l}
 }
 
 func (s *selector) SelectCollection(collections []core.Collection) (core.Collection, error) {
 	var items []list.Item
 	for _, c := range collections {
-		items = append(items, item{title: c.Name})
+		items = append(items, item{title: c.Name, desc: c.Path})
 	}
 
 	m := newListModel(items, "Select a Collection")
@@ -99,7 +152,10 @@ func (s *selector) SelectCollection(collections []core.Collection) (core.Collect
 func (s *selector) SelectRequest(requests []core.Request) (core.Request, error) {
 	var items []list.Item
 	for _, r := range requests {
-		items = append(items, item{title: fmt.Sprintf("%-7s %s", r.Method, r.Name)})
+		items = append(items, item{
+			title: fmt.Sprintf("%-7s %s", r.Method, r.Name),
+			desc:  r.URL,
+		})
 	}
 
 	m := newListModel(items, "Select a Request")

@@ -10,6 +10,12 @@ type BruReport struct {
 	Results []BruReportResult `json:"results"`
 }
 
+type BruIterationReport struct {
+	IterationIndex int               `json:"iterationIndex"`
+	Results        []BruReportResult `json:"results"`
+	Summary        BruReportSummary  `json:"summary"`
+}
+
 type BruReportSummary struct {
 	TotalRequests  int `json:"totalRequests"`
 	PassedRequests int `json:"passedRequests"`
@@ -57,6 +63,15 @@ func (r *BruReportResponse) StatusCode() (int, error) {
 }
 
 func parseReport(data []byte) (*BruReport, error) {
+	var iterations []BruIterationReport
+	if err := json.Unmarshal(data, &iterations); err == nil && len(iterations) > 0 {
+		iter := iterations[0]
+		return &BruReport{
+			Summary: iter.Summary,
+			Results: iter.Results,
+		}, nil
+	}
+
 	var report BruReport
 	if err := json.Unmarshal(data, &report); err != nil {
 		return nil, fmt.Errorf("parsing bru report: %w", err)
