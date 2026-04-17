@@ -20,7 +20,8 @@ func NewPresenter(w io.Writer) core.Presenter {
 	return &presenter{w: w}
 }
 
-func (p *presenter) ShowResponse(resp core.Response, opts core.PresentOpts) error {
+func (p *presenter) ShowResponse(result core.RunResult, opts core.PresentOpts) error {
+	resp := result.Response
 	if opts.Raw {
 		_, err := fmt.Fprintf(p.w, "%s\n", resp.Body)
 		return err
@@ -30,6 +31,11 @@ func (p *presenter) ShowResponse(resp core.Response, opts core.PresentOpts) erro
 	fmt.Fprintf(p.w, "Time:   %dms\n", resp.Duration)
 
 	if opts.Verbose {
+		fmt.Fprintf(p.w, "\nRequest Headers:\n")
+		for _, k := range sortedKeys(result.Request.Headers) {
+			fmt.Fprintf(p.w, "  %s: %s\n", k, maskSensitive(k, result.Request.Headers[k]))
+		}
+
 		fmt.Fprintf(p.w, "\nResponse Headers:\n")
 		for _, k := range sortedKeys(resp.Headers) {
 			fmt.Fprintf(p.w, "  %s: %s\n", k, resp.Headers[k])
