@@ -9,11 +9,11 @@ type Catalog interface {
 }
 
 type Runner interface {
-	Execute(ctx context.Context, req RunRequest) (Response, error)
+	Execute(ctx context.Context, req RunRequest) (RunResult, error)
 }
 
 type Presenter interface {
-	ShowResponse(resp Response, opts PresentOpts) error
+	ShowResponse(result RunResult, opts PresentOpts) error
 	ShowRequestDetails(req Request) error
 	ShowCollections(collections []Collection) error
 	ShowRequests(requests []Request) error
