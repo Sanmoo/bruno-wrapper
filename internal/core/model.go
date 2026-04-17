@@ -47,6 +47,15 @@ type Response struct {
 	Duration   int64
 }
 
+type RunResult struct {
+	Request  RequestMeta
+	Response Response
+}
+
+type RequestMeta struct {
+	Headers map[string]string
+}
+
 type Config struct {
 	CollectionPaths []string
 }
