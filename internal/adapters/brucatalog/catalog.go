@@ -1,7 +1,6 @@
 package brucatalog
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,12 +12,6 @@ import (
 
 type catalog struct {
 	paths []string
-}
-
-type brunoJSON struct {
-	Version string `json:"version"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
 }
 
 // openCollectionYMLNew represents the new Bruno opencollection.yml format
@@ -52,7 +45,7 @@ func (c *catalog) FindCollections() ([]core.Collection, error) {
 		if err != nil {
 			continue
 		}
-		name, _, err := detectCollection(expanded)
+		name, err := detectCollection(expanded)
 		if err != nil {
 			continue
 		}
@@ -71,16 +64,12 @@ func (c *catalog) FindRequests(collectionName string) ([]core.Request, error) {
 		return nil, err
 	}
 
-	_, format, err := detectCollection(colPath)
+	_, err = detectCollection(colPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var requests []core.Request
-	ext := ".bru"
-	if format == core.FormatYML {
-		ext = ".yml"
-	}
 
 	err = filepath.WalkDir(colPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -89,21 +78,13 @@ func (c *catalog) FindRequests(collectionName string) ([]core.Request, error) {
 		if d.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(d.Name(), ext) {
+		if !strings.HasSuffix(d.Name(), ".yml") {
 			return nil
 		}
 
-		var req core.Request
-		if format == core.FormatBru {
-			req, err = ParseBruFile(path)
-			if err != nil {
-				return nil
-			}
-		} else {
-			req, err = ParseYMLFile(path)
-			if err != nil {
-				return nil
-			}
+		req, err := ParseYMLFile(path)
+		if err != nil {
+			return nil
 		}
 		req.Collection = collectionName
 		requests = append(requests, req)
@@ -129,45 +110,32 @@ func (c *catalog) ResolveRequest(collectionName, requestName string) (core.Reque
 	return core.Request{}, fmt.Errorf("request %q not found in collection %q", requestName, collectionName)
 }
 
-func detectCollection(dirPath string) (string, core.CollectionFormat, error) {
-	brunoPath := filepath.Join(dirPath, "bruno.json")
-	if info, err := os.Stat(brunoPath); err == nil && !info.IsDir() {
-		data, err := os.ReadFile(brunoPath)
-		if err != nil {
-			return "", "", err
-		}
-		var bj brunoJSON
-		if err := json.Unmarshal(data, &bj); err != nil {
-			return "", "", err
-		}
-		return bj.Name, core.FormatBru, nil
-	}
-
+func detectCollection(dirPath string) (string, error) {
 	ymlPath := filepath.Join(dirPath, "opencollection.yml")
 	if info, err := os.Stat(ymlPath); err == nil && !info.IsDir() {
 		data, err := os.ReadFile(ymlPath)
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
 
 		// Try new format first (opencollection: x.x.x, info.name: ...)
 		var ocNew openCollectionYMLNew
 		if err := yaml.Unmarshal(data, &ocNew); err == nil && ocNew.Info.Name != "" {
-			return ocNew.Info.Name, core.FormatYML, nil
+			return ocNew.Info.Name, nil
 		}
 
 		// Fall back to old format (version: "x", name: ...)
 		var ocOld openCollectionYMLOld
 		if err := yaml.Unmarshal(data, &ocOld); err != nil {
-			return "", "", err
+			return "", err
 		}
 		if ocOld.Name != "" {
-			return ocOld.Name, core.FormatYML, nil
+			return ocOld.Name, nil
 		}
-		return "", "", fmt.Errorf("opencollection.yml: collection name not found")
+		return "", fmt.Errorf("opencollection.yml: collection name not found")
 	}
 
-	return "", "", fmt.Errorf("no bruno.json or opencollection.yml found in %q", dirPath)
+	return "", fmt.Errorf("no opencollection.yml found in %q", dirPath)
 }
 
 func expandPath(path string) (string, error) {
@@ -187,7 +155,7 @@ func (c *catalog) findCollectionPath(collectionName string) (string, error) {
 		if err != nil {
 			continue
 		}
-		name, _, err := detectCollection(expanded)
+		name, err := detectCollection(expanded)
 		if err != nil {
 			continue
 		}

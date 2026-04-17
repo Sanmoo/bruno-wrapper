@@ -8,30 +8,22 @@ import (
 )
 
 func TestFindCollections(t *testing.T) {
-	bruPath := filepath.Join("testdata", "sample_bru_collection")
 	ymlPath := filepath.Join("testdata", "sample_yml_collection")
 	badPath := filepath.Join("testdata", "nonexistent")
 
-	cat := NewCatalog([]string{bruPath, ymlPath, badPath})
+	cat := NewCatalog([]string{ymlPath, badPath})
 
 	cols, err := cat.FindCollections()
 	if err != nil {
 		t.Fatalf("FindCollections() returned error: %v", err)
 	}
 
-	if len(cols) != 2 {
-		t.Fatalf("FindCollections() returned %d collections, want 2", len(cols))
+	if len(cols) != 1 {
+		t.Fatalf("FindCollections() returned %d collections, want 1", len(cols))
 	}
 
-	names := map[string]bool{}
-	for _, c := range cols {
-		names[c.Name] = true
-	}
-	if !names["Sample Bru Collection"] {
-		t.Error("expected to find 'Sample Bru Collection'")
-	}
-	if !names["Sample YML Collection"] {
-		t.Error("expected to find 'Sample YML Collection'")
+	if cols[0].Name != "Sample YML Collection" {
+		t.Errorf("expected to find 'Sample YML Collection', got %q", cols[0].Name)
 	}
 }
 
@@ -47,10 +39,10 @@ func TestFindCollectionsEmpty(t *testing.T) {
 }
 
 func TestFindRequests(t *testing.T) {
-	bruPath := filepath.Join("testdata", "sample_bru_collection")
-	cat := NewCatalog([]string{bruPath})
+	ymlPath := filepath.Join("testdata", "sample_yml_collection")
+	cat := NewCatalog([]string{ymlPath})
 
-	reqs, err := cat.FindRequests("Sample Bru Collection")
+	reqs, err := cat.FindRequests("Sample YML Collection")
 	if err != nil {
 		t.Fatalf("FindRequests() returned error: %v", err)
 	}
@@ -69,8 +61,8 @@ func TestFindRequests(t *testing.T) {
 			if r.URL != "https://api.example.com/users" {
 				t.Errorf("URL = %q, want %q", r.URL, "https://api.example.com/users")
 			}
-			if r.Collection != "Sample Bru Collection" {
-				t.Errorf("Collection = %q, want %q", r.Collection, "Sample Bru Collection")
+			if r.Collection != "Sample YML Collection" {
+				t.Errorf("Collection = %q, want %q", r.Collection, "Sample YML Collection")
 			}
 			break
 		}
@@ -89,10 +81,10 @@ func TestFindRequestsCollectionNotFound(t *testing.T) {
 }
 
 func TestResolveRequest(t *testing.T) {
-	bruPath := filepath.Join("testdata", "sample_bru_collection")
-	cat := NewCatalog([]string{bruPath})
+	ymlPath := filepath.Join("testdata", "sample_yml_collection")
+	cat := NewCatalog([]string{ymlPath})
 
-	req, err := cat.ResolveRequest("Sample Bru Collection", "Get Users")
+	req, err := cat.ResolveRequest("Sample YML Collection", "Get Users")
 	if err != nil {
 		t.Fatalf("ResolveRequest() returned error: %v", err)
 	}
@@ -103,16 +95,16 @@ func TestResolveRequest(t *testing.T) {
 	if req.Method != core.MethodGet {
 		t.Errorf("Method = %q, want %q", req.Method, core.MethodGet)
 	}
-	if req.Collection != "Sample Bru Collection" {
-		t.Errorf("Collection = %q, want %q", req.Collection, "Sample Bru Collection")
+	if req.Collection != "Sample YML Collection" {
+		t.Errorf("Collection = %q, want %q", req.Collection, "Sample YML Collection")
 	}
 }
 
 func TestResolveRequestNotFound(t *testing.T) {
-	bruPath := filepath.Join("testdata", "sample_bru_collection")
-	cat := NewCatalog([]string{bruPath})
+	ymlPath := filepath.Join("testdata", "sample_yml_collection")
+	cat := NewCatalog([]string{ymlPath})
 
-	_, err := cat.ResolveRequest("Sample Bru Collection", "Nonexistent Request")
+	_, err := cat.ResolveRequest("Sample YML Collection", "Nonexistent Request")
 	if err == nil {
 		t.Error("ResolveRequest with nonexistent request should return error, got nil")
 	}

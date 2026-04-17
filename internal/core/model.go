@@ -64,10 +64,3 @@ type PresentOpts struct {
 	Raw     bool
 	Verbose bool
 }
-
-type CollectionFormat string
-
-const (
-	FormatBru CollectionFormat = "bru"
-	FormatYML CollectionFormat = "yml"
-)
