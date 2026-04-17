@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -45,7 +46,7 @@ func (r *runner) Execute(ctx context.Context, req core.RunRequest) (core.Respons
 
 	cmd := exec.CommandContext(ctx, r.bruPath, args...)
 	cmd.Dir = req.CollectionPath
-	cmd.Stdout = os.Stderr
+	cmd.Stdout = io.Discard
 	cmd.Stderr = os.Stderr
 
 	execErr := cmd.Run()

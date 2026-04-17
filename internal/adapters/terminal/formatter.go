@@ -22,7 +22,7 @@ func NewPresenter(w io.Writer) core.Presenter {
 
 func (p *presenter) ShowResponse(resp core.Response, opts core.PresentOpts) error {
 	if opts.Raw {
-		_, err := fmt.Fprint(p.w, resp.Body)
+		_, err := fmt.Fprintf(p.w, "%s\n", resp.Body)
 		return err
 	}
 
@@ -39,10 +39,10 @@ func (p *presenter) ShowResponse(resp core.Response, opts core.PresentOpts) erro
 	fmt.Fprintf(p.w, "\n")
 	var pretty bytes.Buffer
 	if err := json.Indent(&pretty, []byte(resp.Body), "", "  "); err != nil {
-		fmt.Fprintf(p.w, "%s", resp.Body)
+		fmt.Fprintf(p.w, "%s\n", highlightJSON(resp.Body))
 		return nil
 	}
-	fmt.Fprintf(p.w, "%s", pretty.String())
+	fmt.Fprintf(p.w, "%s\n", highlightJSON(pretty.String()))
 	return nil
 }
 
