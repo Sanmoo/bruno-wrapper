@@ -137,3 +137,63 @@ func TestParseResponseStatusString(t *testing.T) {
 		t.Errorf("StatusCode() = %d, want 0 for error status", code)
 	}
 }
+
+func TestParseReportExtractsRequestHeaders(t *testing.T) {
+	raw := `{
+		"summary": {"totalRequests": 1, "passedRequests": 1},
+		"results": [
+			{
+				"test": {"filename": "test.bru"},
+				"request": {"method": "GET", "url": "https://api.example.com", "headers": {"Authorization": "Bearer token123", "Accept": "application/json"}, "data": null},
+				"response": {"status": 200, "statusText": "OK", "headers": {"Content-Type": "application/json"}, "data": {"ok": true}, "responseTime": 100},
+				"error": null,
+				"status": "pass",
+				"name": "Test",
+				"path": "test.bru"
+			}
+		]
+	}`
+
+	report, err := parseReport([]byte(raw))
+	if err != nil {
+		t.Fatalf("parseReport() error: %v", err)
+	}
+
+	if len(report.Results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(report.Results))
+	}
+
+	reqHeaders := report.Results[0].Request.Headers
+	if reqHeaders["Authorization"] != "Bearer token123" {
+		t.Errorf("Request.Headers[Authorization] = %q, want %q", reqHeaders["Authorization"], "Bearer token123")
+	}
+	if reqHeaders["Accept"] != "application/json" {
+		t.Errorf("Request.Headers[Accept] = %q, want %q", reqHeaders["Accept"], "application/json")
+	}
+}
+
+func TestParseReportNilRequestHeaders(t *testing.T) {
+	raw := `{
+		"summary": {"totalRequests": 1, "passedRequests": 1},
+		"results": [
+			{
+				"test": {"filename": "test.bru"},
+				"request": {"method": "GET", "url": "https://api.example.com", "data": null},
+				"response": {"status": 200, "statusText": "OK", "headers": {}, "data": null, "responseTime": 100},
+				"error": null,
+				"status": "pass",
+				"name": "Test",
+				"path": "test.bru"
+			}
+		]
+	}`
+
+	report, err := parseReport([]byte(raw))
+	if err != nil {
+		t.Fatalf("parseReport() error: %v", err)
+	}
+
+	if report.Results[0].Request.Headers != nil {
+		t.Errorf("expected nil Request.Headers when not present, got %v", report.Results[0].Request.Headers)
+	}
+}
