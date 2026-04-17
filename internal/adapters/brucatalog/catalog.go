@@ -38,7 +38,7 @@ func (c *catalog) FindCollections() ([]core.Collection, error) {
 		if err != nil {
 			continue
 		}
-		name, format, err := detectCollection(expanded)
+		name, _, err := detectCollection(expanded)
 		if err != nil {
 			continue
 		}
@@ -47,7 +47,6 @@ func (c *catalog) FindCollections() ([]core.Collection, error) {
 			Name: name,
 			Path: absPath,
 		})
-		_ = format
 	}
 	return collections, nil
 }
@@ -71,18 +70,12 @@ func (c *catalog) FindRequests(collectionName string) ([]core.Request, error) {
 
 	err = filepath.WalkDir(colPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 		if d.IsDir() {
 			return nil
 		}
 		if !strings.HasSuffix(d.Name(), ext) {
-			return nil
-		}
-		if format == core.FormatBru && d.Name() == "bruno.json" {
-			return nil
-		}
-		if format == core.FormatYML && d.Name() == "opencollection.yml" {
 			return nil
 		}
 

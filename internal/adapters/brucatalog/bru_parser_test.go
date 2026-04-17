@@ -55,15 +55,6 @@ func TestParseBruFileWithBody(t *testing.T) {
 	if req.Body == "" {
 		t.Error("Body is empty, expected non-empty body")
 	}
-
-	expectedVars := map[string]string{
-		"userName": "defaultName",
-	}
-	for k, v := range expectedVars {
-		if req.Vars[k] != v {
-			t.Errorf("Vars[%q] = %q, want %q", k, req.Vars[k], v)
-		}
-	}
 }
 
 func TestParseBruFileNotFound(t *testing.T) {
@@ -105,36 +96,5 @@ headers {
 	}
 	if req.Headers["Content-Type"] != "application/json" {
 		t.Errorf("Content-Type = %q, want %q", req.Headers["Content-Type"], "application/json")
-	}
-}
-
-func TestParsePostResponseVars(t *testing.T) {
-	dir := t.TempDir()
-	bruContent := `meta {
-  name: Vars Test
-  type: http
-  seq: 1
-}
-
-get {
-  url: https://api.example.com/test
-}
-
-vars:post-response {
-  authToken: res.body.token
-}
-`
-	path := filepath.Join(dir, "vars_test.bru")
-	if err := os.WriteFile(path, []byte(bruContent), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	req, err := ParseBruFile(path)
-	if err != nil {
-		t.Fatalf("ParseBruFile returned error: %v", err)
-	}
-
-	if req.Vars["authToken"] != "res.body.token" {
-		t.Errorf("Vars[authToken] = %q, want %q", req.Vars["authToken"], "res.body.token")
 	}
 }

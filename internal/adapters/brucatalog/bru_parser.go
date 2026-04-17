@@ -2,7 +2,9 @@ package brucatalog
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -34,7 +36,6 @@ func ParseBruFile(path string) (core.Request, error) {
 	req := core.Request{
 		Path:    path,
 		Headers: map[string]string{},
-		Vars:    map[string]string{},
 	}
 
 	if meta, ok := blocks["meta"]; ok {
@@ -57,18 +58,6 @@ func ParseBruFile(path string) (core.Request, error) {
 		req.Body = strings.TrimSpace(block)
 	}
 
-	if block, ok := blocks["vars:pre-request"]; ok {
-		for k, v := range parseDictionary(block) {
-			req.Vars[k] = v
-		}
-	}
-
-	if block, ok := blocks["vars:post-response"]; ok {
-		for k, v := range parseDictionary(block) {
-			req.Vars[k] = v
-		}
-	}
-
 	return req, nil
 }
 
@@ -78,7 +67,7 @@ func parseBlocks(r *bufio.Reader) (map[string]string, error) {
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil && line == "" {
-			if err.Error() == "EOF" || isEOF(err) {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, fmt.Errorf("reading line: %w", err)
@@ -186,8 +175,4 @@ func parseDictionary(block string) map[string]string {
 		result[key] = value
 	}
 	return result
-}
-
-func isEOF(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "EOF")
 }

@@ -77,7 +77,7 @@ func (p *presenter) ShowRequests(requests []core.Request) error {
 }
 
 func (p *presenter) ShowError(msg string) error {
-	fmt.Fprintf(p.w, "Error: %s", msg)
+	fmt.Fprintf(p.w, "Error: %s\n", msg)
 	return nil
 }
 

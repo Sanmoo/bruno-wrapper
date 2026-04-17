@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sanmoo/bruwrapper/internal/core"
 )
@@ -41,15 +42,9 @@ func (a *RunApp) Run(ctx context.Context, params RunParams) error {
 		if err != nil {
 			return a.presenter.ShowError(err.Error())
 		}
-		collections, err := a.catalog.FindCollections()
+		collection, err = a.findCollection(params.CollectionName)
 		if err != nil {
 			return a.presenter.ShowError(err.Error())
-		}
-		for _, c := range collections {
-			if c.Name == params.CollectionName {
-				collection = c
-				break
-			}
 		}
 	}
 
@@ -84,15 +79,10 @@ func (a *RunApp) interactiveSelection(collectionName string) (core.Collection, c
 			return core.Collection{}, core.Request{}, err
 		}
 	} else {
-		collections, err := a.catalog.FindCollections()
+		var err error
+		collection, err = a.findCollection(collectionName)
 		if err != nil {
 			return core.Collection{}, core.Request{}, err
-		}
-		for _, c := range collections {
-			if c.Name == collectionName {
-				collection = c
-				break
-			}
 		}
 	}
 
@@ -107,4 +97,17 @@ func (a *RunApp) interactiveSelection(collectionName string) (core.Collection, c
 	}
 
 	return collection, request, nil
+}
+
+func (a *RunApp) findCollection(name string) (core.Collection, error) {
+	collections, err := a.catalog.FindCollections()
+	if err != nil {
+		return core.Collection{}, err
+	}
+	for _, c := range collections {
+		if c.Name == name {
+			return c, nil
+		}
+	}
+	return core.Collection{}, fmt.Errorf("collection %q not found", name)
 }

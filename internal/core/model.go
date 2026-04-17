@@ -23,7 +23,6 @@ type Request struct {
 	URL        string
 	Headers    map[string]string
 	Body       string
-	Vars       map[string]string
 	Collection string
 	Path       string
 }

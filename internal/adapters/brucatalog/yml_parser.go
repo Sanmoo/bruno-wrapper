@@ -54,7 +54,6 @@ func ParseYMLFile(path string) (core.Request, error) {
 		URL:     f.HTTP.URL,
 		Headers: headers,
 		Body:    strings.TrimSpace(f.Body.Content),
-		Vars:    map[string]string{},
 		Path:    path,
 	}
 

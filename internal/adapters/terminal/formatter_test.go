@@ -169,8 +169,8 @@ func TestShowError(t *testing.T) {
 
 	output := buf.String()
 
-	if !strings.Contains(output, "Error: something went wrong") {
-		t.Errorf("expected 'Error: something went wrong', got:\n%s", output)
+	if !strings.Contains(output, "Error: something went wrong\n") {
+		t.Errorf("expected 'Error: something went wrong\\n', got:\n%s", output)
 	}
 }
 
