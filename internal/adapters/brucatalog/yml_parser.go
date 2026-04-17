@@ -9,25 +9,55 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type ymlFile struct {
-	Meta    ymlMeta           `yaml:"meta"`
-	HTTP    ymlHTTP           `yaml:"http"`
-	Headers map[string]string `yaml:"headers"`
-	Body    ymlBody           `yaml:"body"`
+// ymlFileNew represents the new Bruno YML format
+type ymlFileNew struct {
+	Info ymlInfoNew `yaml:"info"`
+	HTTP ymlHTTPNew `yaml:"http"`
+	Body ymlBodyNew `yaml:"body"`
 }
 
-type ymlMeta struct {
+type ymlInfoNew struct {
 	Name string `yaml:"name"`
 	Type string `yaml:"type"`
 	Seq  int    `yaml:"seq"`
 }
 
-type ymlHTTP struct {
+type ymlHTTPNew struct {
+	Method  string         `yaml:"method"`
+	URL     string         `yaml:"url"`
+	Headers []ymlHeaderNew `yaml:"headers"`
+}
+
+type ymlHeaderNew struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
+
+type ymlBodyNew struct {
+	Type string `yaml:"type"`
+	Data string `yaml:"data"`
+}
+
+// ymlFileOld represents the old test format
+type ymlFileOld struct {
+	Meta    ymlMetaOld        `yaml:"meta"`
+	HTTP    ymlHTTPOld        `yaml:"http"`
+	Headers map[string]string `yaml:"headers"`
+	Body    ymlBodyOld        `yaml:"body"`
+}
+
+type ymlMetaOld struct {
+	Name string `yaml:"name"`
+	Type string `yaml:"type"`
+	Seq  int    `yaml:"seq"`
+}
+
+type ymlHTTPOld struct {
 	Method string `yaml:"method"`
 	URL    string `yaml:"url"`
 }
 
-type ymlBody struct {
+type ymlBodyOld struct {
 	Type    string `yaml:"type"`
 	Content string `yaml:"content"`
 }
@@ -38,24 +68,47 @@ func ParseYMLFile(path string) (core.Request, error) {
 		return core.Request{}, fmt.Errorf("read yml file: %w", err)
 	}
 
-	var f ymlFile
-	if err := yaml.Unmarshal(data, &f); err != nil {
+	// Try new format first (info.name, http.headers array, body.data)
+	var newFile ymlFileNew
+	if err := yaml.Unmarshal(data, &newFile); err == nil && newFile.Info.Name != "" {
+		headers := make(map[string]string)
+		for _, h := range newFile.HTTP.Headers {
+			if h.Name != "" {
+				headers[h.Name] = h.Value
+			}
+		}
+
+		return core.Request{
+			Name:    newFile.Info.Name,
+			Method:  core.RequestMethod(strings.ToUpper(newFile.HTTP.Method)),
+			URL:     newFile.HTTP.URL,
+			Headers: headers,
+			Body:    strings.TrimSpace(newFile.Body.Data),
+			Path:    path,
+		}, nil
+	}
+
+	// Fall back to old format (meta.name, headers map at root, body.content)
+	var oldFile ymlFileOld
+	if err := yaml.Unmarshal(data, &oldFile); err != nil {
 		return core.Request{}, fmt.Errorf("parse yml file: %w", err)
 	}
 
-	headers := f.Headers
+	if oldFile.Meta.Name == "" {
+		return core.Request{}, fmt.Errorf("parse yml file: request name not found in either format")
+	}
+
+	headers := oldFile.Headers
 	if headers == nil {
 		headers = map[string]string{}
 	}
 
-	req := core.Request{
-		Name:    f.Meta.Name,
-		Method:  core.RequestMethod(strings.ToUpper(f.HTTP.Method)),
-		URL:     f.HTTP.URL,
+	return core.Request{
+		Name:    oldFile.Meta.Name,
+		Method:  core.RequestMethod(strings.ToUpper(oldFile.HTTP.Method)),
+		URL:     oldFile.HTTP.URL,
 		Headers: headers,
-		Body:    strings.TrimSpace(f.Body.Content),
+		Body:    strings.TrimSpace(oldFile.Body.Content),
 		Path:    path,
-	}
-
-	return req, nil
+	}, nil
 }

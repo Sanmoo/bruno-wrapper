@@ -47,7 +47,7 @@ func (r *runner) Execute(ctx context.Context, req core.RunRequest) (core.RunResu
 	cmd := exec.CommandContext(ctx, r.bruPath, args...)
 	cmd.Dir = req.CollectionPath
 	cmd.Stdout = io.Discard
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = io.Discard
 
 	execErr := cmd.Run()
 

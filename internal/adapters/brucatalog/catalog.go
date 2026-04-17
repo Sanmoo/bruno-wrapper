@@ -21,7 +21,21 @@ type brunoJSON struct {
 	Type    string `json:"type"`
 }
 
-type openCollectionYML struct {
+// openCollectionYMLNew represents the new Bruno opencollection.yml format
+type openCollectionYMLNew struct {
+	Opencollection string                 `yaml:"opencollection"`
+	Info           openCollectionInfoNew  `yaml:"info"`
+	Config         map[string]interface{} `yaml:"config,omitempty"`
+	Bundled        bool                   `yaml:"bundled"`
+	Extensions     map[string]interface{} `yaml:"extensions,omitempty"`
+}
+
+type openCollectionInfoNew struct {
+	Name string `yaml:"name"`
+}
+
+// openCollectionYMLOld represents the old test format
+type openCollectionYMLOld struct {
 	Version string `yaml:"version"`
 	Name    string `yaml:"name"`
 	Type    string `yaml:"type"`
@@ -135,11 +149,22 @@ func detectCollection(dirPath string) (string, core.CollectionFormat, error) {
 		if err != nil {
 			return "", "", err
 		}
-		var oc openCollectionYML
-		if err := yaml.Unmarshal(data, &oc); err != nil {
+
+		// Try new format first (opencollection: x.x.x, info.name: ...)
+		var ocNew openCollectionYMLNew
+		if err := yaml.Unmarshal(data, &ocNew); err == nil && ocNew.Info.Name != "" {
+			return ocNew.Info.Name, core.FormatYML, nil
+		}
+
+		// Fall back to old format (version: "x", name: ...)
+		var ocOld openCollectionYMLOld
+		if err := yaml.Unmarshal(data, &ocOld); err != nil {
 			return "", "", err
 		}
-		return oc.Name, core.FormatYML, nil
+		if ocOld.Name != "" {
+			return ocOld.Name, core.FormatYML, nil
+		}
+		return "", "", fmt.Errorf("opencollection.yml: collection name not found")
 	}
 
 	return "", "", fmt.Errorf("no bruno.json or opencollection.yml found in %q", dirPath)

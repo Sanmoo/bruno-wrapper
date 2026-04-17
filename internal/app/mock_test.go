@@ -30,7 +30,7 @@ type mockPresenter struct {
 	err                   error
 }
 
-func (m *mockPresenter) ShowResponse(core.Response, core.PresentOpts) error {
+func (m *mockPresenter) ShowResponse(core.RunResult, core.PresentOpts) error {
 	return nil
 }
 

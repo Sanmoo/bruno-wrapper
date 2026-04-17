@@ -9,16 +9,16 @@ import (
 )
 
 type mockRunner struct {
-	resp    core.Response
-	execute func(req core.RunRequest) (core.Response, error)
+	result  core.RunResult
+	execute func(req core.RunRequest) (core.RunResult, error)
 	err     error
 }
 
-func (m *mockRunner) Execute(ctx context.Context, req core.RunRequest) (core.Response, error) {
+func (m *mockRunner) Execute(ctx context.Context, req core.RunRequest) (core.RunResult, error) {
 	if m.execute != nil {
 		return m.execute(req)
 	}
-	return m.resp, m.err
+	return m.result, m.err
 }
 
 type mockSelector struct {
@@ -44,14 +44,14 @@ func (m *mockSelector) SelectRequest(requests []core.Request) (core.Request, err
 type runSpyPresenter struct {
 	calledShowResponse bool
 	calledShowError    bool
-	receivedResponse   core.Response
+	receivedResult     core.RunResult
 	receivedOpts       core.PresentOpts
 	receivedErrorMsg   string
 }
 
-func (s *runSpyPresenter) ShowResponse(resp core.Response, opts core.PresentOpts) error {
+func (s *runSpyPresenter) ShowResponse(result core.RunResult, opts core.PresentOpts) error {
 	s.calledShowResponse = true
-	s.receivedResponse = resp
+	s.receivedResult = result
 	s.receivedOpts = opts
 	return nil
 }
@@ -77,7 +77,7 @@ func TestRunWithExplicitParams(t *testing.T) {
 		requests:    []core.Request{request},
 		resolved:    request,
 	}
-	runner := &mockRunner{resp: core.Response{StatusCode: 200, StatusText: "OK", Body: `{"ok":true}`, Duration: 100}}
+	runner := &mockRunner{result: core.RunResult{Response: core.Response{StatusCode: 200, StatusText: "OK", Body: `{"ok":true}`, Duration: 100}}}
 	presenter := &runSpyPresenter{}
 	selector := &mockSelector{}
 
@@ -93,8 +93,8 @@ func TestRunWithExplicitParams(t *testing.T) {
 	if !presenter.calledShowResponse {
 		t.Error("expected ShowResponse to be called")
 	}
-	if presenter.receivedResponse.StatusCode != 200 {
-		t.Errorf("expected status code 200, got %d", presenter.receivedResponse.StatusCode)
+	if presenter.receivedResult.Response.StatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", presenter.receivedResult.Response.StatusCode)
 	}
 }
 
@@ -109,9 +109,9 @@ func TestRunWithVarsAndEnv(t *testing.T) {
 		resolved:    request,
 	}
 	runner := &mockRunner{
-		execute: func(req core.RunRequest) (core.Response, error) {
+		execute: func(req core.RunRequest) (core.RunResult, error) {
 			capturedReq = req
-			return core.Response{StatusCode: 200, StatusText: "OK", Body: `{}`}, nil
+			return core.RunResult{Response: core.Response{StatusCode: 200, StatusText: "OK", Body: `{}`}}, nil
 		},
 	}
 	presenter := &runSpyPresenter{}
@@ -226,7 +226,7 @@ func TestRunWithInteractiveSelection(t *testing.T) {
 		collections: []core.Collection{collection},
 		requests:    []core.Request{request},
 	}
-	runner := &mockRunner{resp: core.Response{StatusCode: 200, StatusText: "OK", Body: `{}`}}
+	runner := &mockRunner{result: core.RunResult{Response: core.Response{StatusCode: 200, StatusText: "OK", Body: `{}`}}}
 	presenter := &runSpyPresenter{}
 	selector := &mockSelector{
 		collection: collection,
@@ -252,7 +252,7 @@ func TestRunWithPartialInteractiveSelection(t *testing.T) {
 		collections: []core.Collection{collection},
 		requests:    []core.Request{request},
 	}
-	runner := &mockRunner{resp: core.Response{StatusCode: 200, StatusText: "OK", Body: `{}`}}
+	runner := &mockRunner{result: core.RunResult{Response: core.Response{StatusCode: 200, StatusText: "OK", Body: `{}`}}}
 	presenter := &runSpyPresenter{}
 	selector := &mockSelector{
 		request: request,

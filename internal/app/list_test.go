@@ -14,8 +14,8 @@ type spyPresenter struct {
 	receivedRequests      []core.Request
 }
 
-func (s *spyPresenter) ShowResponse(core.Response, core.PresentOpts) error { return nil }
-func (s *spyPresenter) ShowRequestDetails(core.Request) error              { return nil }
+func (s *spyPresenter) ShowResponse(core.RunResult, core.PresentOpts) error { return nil }
+func (s *spyPresenter) ShowRequestDetails(core.Request) error               { return nil }
 func (s *spyPresenter) ShowCollections(collections []core.Collection) error {
 	s.calledShowCollections = true
 	s.receivedCollections = collections
