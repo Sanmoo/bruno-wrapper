@@ -55,12 +55,12 @@ func (a *RunApp) Run(ctx context.Context, params RunParams) error {
 		Variables:      params.Variables,
 	}
 
-	response, err := a.runner.Execute(ctx, runReq)
+	result, err := a.runner.Execute(ctx, runReq)
 	if err != nil {
 		return a.presenter.ShowError(err.Error())
 	}
 
-	return a.presenter.ShowResponse(response, core.PresentOpts{
+	return a.presenter.ShowResponse(result, core.PresentOpts{
 		Raw:     params.Raw,
 		Verbose: params.Verbose,
 	})
